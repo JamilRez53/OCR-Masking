@@ -35,12 +35,13 @@ const MaskedNID = () => {
         const boxesToMask = [];
 
         sensitiveFields.forEach(({ patterns }) => {
+          console.log(words)
           words.forEach((word, index) => {
             // Check if the word matches any of the patterns
             if (patterns.some((pattern) => pattern.test(word.text.trim()))) {
               const labelBox = word.bbox;
               let valueBox = null;
-
+           
               // Find the next non-empty word after the label to use as the value
               for (let i = index + 1; i < words.length; i++) {
                 if (words[i].text.trim()) {
@@ -48,7 +49,7 @@ const MaskedNID = () => {
                   break;
                 }
               }
-
+ 
               // If a value was found, create a mask box that covers both label and value
               if (valueBox) {
                 const x = Math.min(labelBox.x0, valueBox.x0);
@@ -88,7 +89,7 @@ const MaskedNID = () => {
       ) : (
         <div>
           <Placeholder.Paragraph rows={8} />
-          <Loader center content="Loading..." />
+          <Loader center content="Loading" />
         </div>
       )}
     </div>
@@ -98,7 +99,7 @@ const MaskedNID = () => {
 const MaskedImageCanvas = ({ imageURL, maskedBoxes }) => {
   const [image] = useImage(imageURL); // Use the uploaded image
 
-  if (!image) return <div>Loading...</div>;
+ 
 
   const imageWidth = image.width;
   const imageHeight = image.height;
