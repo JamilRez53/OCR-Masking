@@ -12,7 +12,7 @@ function App() {
   return (
     <>
       <ImageAndMask/>
-     <OcrComponent/>
+     {/* <OcrComponent/> */}
     </>
   )
 }

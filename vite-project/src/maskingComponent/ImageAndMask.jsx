@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import * as Tesseract from 'tesseract.js';
 import { Stage, Layer, Image as KonvaImage, Rect } from 'react-konva';
 import useImage from 'use-image';
-
+import { Loader, Placeholder } from 'rsuite';
 const MaskedNID = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [maskedBoxes, setMaskedBoxes] = useState([]);
@@ -14,7 +14,7 @@ const MaskedNID = () => {
       const url = URL.createObjectURL(file);
       setImageURL(url);
       setSelectedImage(file);
-      setMaskedBoxes([]); // Reset masked boxes for new image
+      setMaskedBoxes([]); 
     }
   };
 
@@ -28,17 +28,15 @@ const MaskedNID = () => {
         });
 
         const sensitiveFields = [
-          { label: "ID No.", pattern: /^No\s*[.:;]?$/i }  // NID No.
+          { label: "ID No.", pattern: /^[ID]No\s*[.:;]?$/i } 
         ];
-        console.log(words); // Check the words detected by Tesseract
+        console.log(words);
         const boxesToMask = [];
-
-        // Iterate through sensitive fields and find labels and values
         sensitiveFields.forEach(({ label, pattern }) => {
           const labelIndex = words.findIndex((word) => pattern.test(word.text.trim()));
-          console.log(label, labelIndex); // Debug: Check if the label is found
+          console.log(label, labelIndex); 
           const labels = words.find((word) => pattern.test(word.text.trim()));
-          console.log(labels); // Debug: Check the found label
+          console.log(labels); 
 
           if (labelIndex !== -1) {
             const labelBox = words[labelIndex].bbox;
@@ -77,17 +75,18 @@ const MaskedNID = () => {
   return (
     <div>
       <input type="file" accept="image/*" onChange={handleImageUpload} />
-      {imageURL && (
+      {maskedBoxes.length>0 ? (
         <MaskedImageCanvas imageURL={imageURL} maskedBoxes={maskedBoxes} />
-      )}
+      ): <div>
+      <Placeholder.Paragraph rows={8} />
+      <Loader center content="loading" />
+    </div>}
     </div>
   );
 };
 
 const MaskedImageCanvas = ({ imageURL, maskedBoxes }) => {
   const [image] = useImage(imageURL); // Use the uploaded image
-
-  if (!image) return <div>Loading...</div>; // Show loading while the image is loading
 
   // Set the Stage dimensions based on the image size
   const imageWidth = image.width;
