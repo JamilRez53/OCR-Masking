@@ -8,6 +8,7 @@ const MaskedNID = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [maskedBoxes, setMaskedBoxes] = useState([]);
   const [imageURL, setImageURL] = useState(null);
+  const [base64Image, setBase64Image] = useState(null);
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
@@ -15,42 +16,47 @@ const MaskedNID = () => {
       const url = URL.createObjectURL(file);
       setImageURL(url);
       setSelectedImage(file);
-      setMaskedBoxes([]); 
+      setMaskedBoxes([]);
+      convertToBase64(file);
     }
+  };
+
+  const convertToBase64 = (file) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = () => {
+      setBase64Image(reader.result); // Set the base64 string
+    };
   };
 
   useEffect(() => {
     const detectText = async () => {
-      if (!selectedImage) return;
+      if (!base64Image) return;
 
       try {
-        const { data: { words } } = await Tesseract.recognize(selectedImage, 'eng+ben', {
+        const { data: { words } } = await Tesseract.recognize(base64Image, 'eng+ben', {
           logger: (m) => console.log(m)
         });
 
         const sensitiveFields = [
-          { label: "ID", patterns: [/^ID\s*No[.:;]?$/i,  /^No[.:;]$/i] }
+          { label: "ID", patterns: [/^ID\s*No[.:;]?$/i, /^No[.:;]$/i] }
         ];
 
         const boxesToMask = [];
-
+console.log(words)
         sensitiveFields.forEach(({ patterns }) => {
-          console.log(words)
           words.forEach((word, index) => {
-            // Check if the word matches any of the patterns
             if (patterns.some((pattern) => pattern.test(word.text.trim()))) {
               const labelBox = word.bbox;
               let valueBox = null;
-           
-              // Find the next non-empty word after the label to use as the value
+
               for (let i = index + 1; i < words.length; i++) {
                 if (words[i].text.trim()) {
                   valueBox = words[i].bbox;
                   break;
                 }
               }
- 
-              // If a value was found, create a mask box that covers both label and value
+
               if (valueBox) {
                 const x = Math.min(labelBox.x0, valueBox.x0);
                 const y = Math.min(labelBox.y0, valueBox.y0);
@@ -59,7 +65,6 @@ const MaskedNID = () => {
 
                 boxesToMask.push({ x, y, width, height });
               } else {
-                // Mask just the label if no value is found
                 boxesToMask.push({
                   x: labelBox.x0,
                   y: labelBox.y0,
@@ -79,7 +84,7 @@ const MaskedNID = () => {
     };
 
     detectText();
-  }, [selectedImage]); // Trigger when the selected image changes
+  }, [base64Image]); // Trigger when the base64 image changes
 
   return (
     <div>
@@ -89,7 +94,7 @@ const MaskedNID = () => {
       ) : (
         <div>
           <Placeholder.Paragraph rows={8} />
-          <Loader center content="Loading" />
+          <Loader center content="Loading..." />
         </div>
       )}
     </div>
@@ -97,9 +102,9 @@ const MaskedNID = () => {
 };
 
 const MaskedImageCanvas = ({ imageURL, maskedBoxes }) => {
-  const [image] = useImage(imageURL); // Use the uploaded image
+  const [image] = useImage(imageURL);
 
- 
+  if (!image) return <div>Loading...</div>;
 
   const imageWidth = image.width;
   const imageHeight = image.height;
@@ -109,7 +114,6 @@ const MaskedImageCanvas = ({ imageURL, maskedBoxes }) => {
       <Layer>
         {image && <KonvaImage image={image} width={imageWidth} height={imageHeight} />}
         
-        {/* Render black rectangles over the text regions to mask them */}
         {maskedBoxes.map((box, index) => (
           <Rect
             key={index}
@@ -118,7 +122,7 @@ const MaskedImageCanvas = ({ imageURL, maskedBoxes }) => {
             width={box.width}
             height={box.height}
             fill="black"
-            opacity={1} // Full opacity for masking
+            opacity={1}
           />
         ))}
       </Layer>
